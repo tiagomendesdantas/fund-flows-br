@@ -158,7 +158,7 @@ def overview(eng: Engine, now: pd.Timestamp) -> dict:
 
     this_month = usable[usable["dt"] >= month_start]
     last_month = usable[(usable["dt"] >= prev_start) & (usable["dt"] < month_start)]
-    return {
+    out = {
         "as_of": _stamp(now), "file_day": latest.isoformat() if latest else None,
         "collector": status(eng, now)["collector"],
         "assets": None if done.empty else {
@@ -175,6 +175,53 @@ def overview(eng: Engine, now: pd.Timestamp) -> dict:
                    "net": r.captc - r.resg, "n": int(r.n)} for r in recent.itertuples()],
         "completeness": completeness(eng, latest, days=6),
     }
+    out["headline"] = headline(out)
+    return out
+
+
+def _bn(v: float) -> str:
+    return f"R${abs(v) / 1e9:,.1f} bn"
+
+
+def _flow_word(v: float) -> str:
+    return "inflow" if v >= 0 else "outflow"
+
+
+def _month_name(ym: str) -> str:
+    return pd.Timestamp(f"{ym}-01").strftime("%B")
+
+
+def headline(o: dict) -> str:
+    """One sentence in the form of a statistical release: the change, its period, the previous
+    period, then the level. Every number is one already in the response."""
+    def direct(part: dict) -> dict | None:
+        return next((s for s in part.get("segments", []) if s["segment"] == "direct"), None)
+
+    now, last = direct(o["this_month"]), direct(o["last_month"])
+    this_name, last_name = _month_name(o["this_month"]["month"]), _month_name(o["last_month"]["month"])
+
+    def clause(row: dict, name: str, partial: int, so_far: bool) -> str:
+        days = f"{row['days']} business day{'s' if row['days'] != 1 else ''}"
+        arriving = f" with {partial} still arriving" if partial else ""
+        if abs(row["net"]) < 5e7:
+            return f"Net flow near zero in {name}{' so far' if so_far else ''}, over {days}{arriving}"
+        return (f"Net {_flow_word(row['net'])} of {_bn(row['net'])} in {name}"
+                f"{' so far' if so_far else ''}, over {days}{arriving}")
+
+    parts = []
+    if now:
+        parts.append(clause(now, this_name, o["this_month"]["partial_days"], True))
+        if last:
+            parts[-1] += f", after {_bn(last['net'])} of {_flow_word(last['net'])} in {last_name}"
+    elif last:
+        parts.append(clause(last, last_name, o["last_month"]["partial_days"], False))
+        parts[-1] += f"; no day of {this_name} is mostly reported yet"
+    else:
+        parts.append("No day is mostly reported yet")
+    if o.get("assets"):
+        when = pd.Timestamp(o["assets"]["dt"]).strftime("%-d %B")
+        parts.append(f"Net assets R${o['assets']['pl'] / 1e12:,.2f} tn on {when}")
+    return ". ".join(parts) + "."
 
 
 def flows(eng: Engine, segment: str) -> dict:

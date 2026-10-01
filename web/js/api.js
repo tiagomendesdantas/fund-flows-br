@@ -35,7 +35,8 @@ export async function fill(el, render) {
   }
 }
 
+// A quiet placeholder while a part loads: a muted dash, no animation. Phrasing content, so it
+// can sit inside a paragraph.
 export const skeleton = (kind = "chart") => (kind === "chart"
-  ? `<div class="skeleton sk-line" style="width:40%"></div><div class="skeleton sk-chart"></div>`
-  : kind === "tile" ? `<div class="skeleton sk-line" style="width:50%"></div><div class="skeleton sk-v"></div><div class="skeleton sk-line" style="width:70%"></div>`
-    : `<div class="skeleton sk-line"></div><div class="skeleton sk-line" style="width:80%"></div><div class="skeleton sk-line" style="width:60%"></div>`);
+  ? `<div class="placeholder" aria-hidden="true" style="min-height:220px">—</div>`
+  : `<span class="placeholder" aria-hidden="true">—</span>`);

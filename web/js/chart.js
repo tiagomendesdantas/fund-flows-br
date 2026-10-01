@@ -6,15 +6,11 @@ import { BRT_OFFSET_MS, esc, fmtDay, fmtDayTime, fmtTime, toDate } from "./fmt.j
 
 const DAY = 86400e3;
 const HOUR = 3600e3;
-const VARS = { "e-actual": "--ink", "e-forecast": "--forecast", "e-programme": "--programme", "e-rooftop": "--rooftop",
-  "e-hydro": "--hydro", "e-thermal": "--thermal", "e-wind": "--wind", "e-solar": "--solar", band80: "--band80", band95: "--band95",
-  "m-ensemble": "--forecast", "m-mstl_ets": "--thermal", "m-boosting": "--wind", "m-seasonal_naive": "--muted", "m-ons_programme": "--ink",
-  "fill-1": "--hydro", "fill-2": "--thermal", "fill-3": "--wind", "fill-4": "--muted", "e-seq1": "--seq1", "e-seq2": "--seq2", "e-seq3": "--seq3", "e-seq4": "--seq4", "e-seq5": "--seq5", "e-seq6": "--seq6", "e-seq7": "--seq7",
-  "e-in": "--in", "e-out": "--out", "e-assets": "--ink", "b-in": "--in", "b-out": "--out" };
+const VARS = { "e-in": "--in", "e-out": "--out", "e-assets": "--ink", "b-in": "--in", "b-out": "--out" };
 
 export function legend(items) {
   return `<div class="legend">${items.map(({ name, cls, kind = "line" }) => {
-    const style = kind === "box" ? `background:var(${VARS[cls]})` : `border-color:var(${VARS[cls]})`;
+    const style = kind === "box" ? `background:var(${VARS[cls]})` : kind === "hatch" ? `color:var(${VARS[cls]});border-color:var(${VARS[cls]})` : `border-color:var(${VARS[cls]})`;
     return `<span><span class="sw ${kind}" style="${style}"></span>${esc(name)}</span>`;
   }).join("")}</div>`;
 }
@@ -75,9 +71,9 @@ function drawTime(el, o) {
   const stamps = new Set();
   [...stack, ...lines, ...bands].forEach((s) => s.points.forEach((p) => stamps.add(p[0])));
   const grid = [...stamps].sort().map((s) => [s, toDate(s).getTime()]);
-  if (!grid.length) { el.innerHTML = `<p class="small muted">No data yet.</p>`; return; }
+  if (!grid.length) { el.innerHTML = `<p class="placeholder">No data yet.</p>`; return; }
   const width = Math.max(el.clientWidth || 640, 280), narrow = width < 560;
-  const height = o.height || (narrow ? 230 : 290);
+  const height = o.height || (narrow ? 220 : 300);
   const labels = o.labels !== false && !narrow;
   const longest = Math.max(0, ...stack.map((x) => x.name.length), ...lines.map((x) => x.name.length));
   const m = { l: 40, r: labels ? Math.min(170, 16 + longest * 6.6) : 12, t: 24, b: 26 };
@@ -94,7 +90,7 @@ function drawTime(el, o) {
   const bandVals = bands.map((b) => at(b).map((p) => (p ? [p[1], p[2]] : null)));
   const all = [...base.filter((v, i) => stack.length && v != null && i >= 0), ...lineVals.flat(), ...bandVals.flat().flat()]
     .filter((v) => v != null && Number.isFinite(v));
-  if (!all.length) { el.innerHTML = `<p class="small muted">No data yet.</p>`; return; }
+  if (!all.length) { el.innerHTML = `<p class="placeholder">No data yet.</p>`; return; }
   const scale = o.scale ?? 1000;
   const [ylo, yhi, ticks] = niceScale(o.yMin ?? Math.min(...all), o.yMax ?? Math.max(...all), narrow ? 4 : 5, o.zero || stack.length > 0);
   const t0 = grid[0][1], t1 = Math.max(grid[grid.length - 1][1], t0 + HOUR);
@@ -111,7 +107,7 @@ function drawTime(el, o) {
   const span = t1 - t0, xt = [];
   if (span <= 1.6 * DAY) {
     for (let t = Math.ceil((t0 - BRT_OFFSET_MS) / (3 * HOUR)) * 3 * HOUR + BRT_OFFSET_MS; t <= t1; t += 3 * HOUR) {
-      xt.push(`<line class="gl" x1="${f1(X(t))}" x2="${f1(X(t))}" y1="${m.t}" y2="${height - m.b}"/><text x="${f1(X(t))}" y="${height - 8}" text-anchor="middle">${fmtTime(new Date(t))}</text>`);
+      xt.push(`<text x="${f1(X(t))}" y="${height - 8}" text-anchor="middle">${fmtTime(new Date(t))}</text>`);
     }
   } else if (span > 60 * DAY) {
     // Months: a line at each local month start, labelled "Jan ’26", thinned to fit.
@@ -126,7 +122,7 @@ function drawTime(el, o) {
     const monthPx = (30 * DAY / (t1 - t0)) * (width - m.l - m.r);
     const every = Math.max(1, Math.ceil(52 / monthPx));
     starts.forEach((t, k) => {
-      xt.push(`<line x1="${f1(X(t))}" x2="${f1(X(t))}" y1="${m.t}" y2="${height - m.b}"/>`);
+      if (new Date(t - BRT_OFFSET_MS).getUTCMonth() === 0) xt.push(`<line class="year" x1="${f1(X(t))}" x2="${f1(X(t))}" y1="${m.t}" y2="${height - m.b}"/>`);
       if (k % every === 0) xt.push(`<text x="${f1(X(t))}" y="${height - 8}" text-anchor="middle">${fmtM.format(new Date(t + 15 * DAY)).replace(" ", " ’")}</text>`);
     });
   } else {
@@ -141,7 +137,6 @@ function drawTime(el, o) {
     let k = 0;
     for (let t = Math.ceil((t0 - BRT_OFFSET_MS) / DAY) * DAY + BRT_OFFSET_MS; t <= t1; t += DAY, k++) {
       const end = Math.min(t + DAY, t1), mid = new Date((t + end) / 2);
-      if (dayPx >= 12 || k % every === 0) xt.push(`<line x1="${f1(X(t))}" x2="${f1(X(t))}" y1="${m.t}" y2="${height - m.b}"/>`);
       if (style === "num") {
         if (k % every === 0) xt.push(`<text x="${f1(X(t))}" y="${height - 8}" text-anchor="middle">${num.format(new Date(t + DAY / 2))}</text>`);
         continue;
@@ -238,7 +233,7 @@ function wire(el, width, xs, tipHtml, m, height) {
 export function tableTwin(opts, caption) {
   const d = document.createElement("details");
   d.className = "twin";
-  d.innerHTML = `<summary>Show as table</summary>`;
+  d.innerHTML = `<summary>Table</summary>`;
   d.addEventListener("toggle", () => {
     if (!d.open || d.querySelector("table")) return;
     const cols = [...(opts.stack || []), ...(opts.lines || []), ...(opts.bands || [])];
@@ -261,7 +256,7 @@ export function categoryChart(el, { categories, series, aria, height }) {
     const h = height || (narrow ? 220 : 260);
     const m = { l: 44, r: 12, t: 14, b: 28 };
     const all = series.flatMap((s) => s.values).filter((v) => v != null);
-    if (!all.length) { el.innerHTML = `<p class="small muted">No data yet.</p>`; return; }
+    if (!all.length) { el.innerHTML = `<p class="placeholder">No data yet.</p>`; return; }
     const [ylo, yhi, ticks] = niceScale(0, Math.max(...all), 4, true);
     const X = (i) => m.l + ((i + 0.5) / categories.length) * (width - m.l - m.r);
     const Y = (v) => m.t + (1 - (v - ylo) / (yhi - ylo)) * (h - m.t - m.b);
@@ -380,33 +375,48 @@ export function flowMap(el, pairs, names) {
 // Signed columns (e.g. net flow by day or month): positive values in the "in" colour above zero,
 // negative in the "out" colour below; partial[i] fades a column whose figure is still arriving.
 // values in raw units, shown divided by `scale` with `digits` decimals.
-export function signedBars(el, { categories, values, partial = [], unit, scale = 1, digits = 1, aria, height, notes = [] }) {
+let uid = 0;
+export function signedBars(el, { categories, values, partial = [], unit, scale = 1, digits = 1, aria, height, notes = [], flag = "reports still arriving" }) {
+  const id = `h${++uid}`;
   const draw = () => {
     const width = Math.max(el.clientWidth || 600, 280), narrow = width < 560;
-    const h = height || (narrow ? 220 : 260);
-    const m = { l: 48, r: 10, t: 22, b: 28 };
+    const h = height || (narrow ? 220 : 300);
+    const m = { l: 44, r: 8, t: 24, b: 26 };
     const vals = values.map((v) => (v == null ? null : v / scale));
     const ok = vals.filter((v) => v != null);
-    if (!ok.length) { el.innerHTML = `<p class="small muted">No data yet.</p>`; return; }
+    if (!ok.length) { el.innerHTML = `<p class="placeholder">No data yet.</p>`; return; }
     const [ylo, yhi, ticks] = niceScale(Math.min(0, ...ok), Math.max(0, ...ok), 4, true);
-    const band = (width - m.l - m.r) / categories.length, bw = Math.max(2, Math.min(30, band * 0.72));
+    const band = (width - m.l - m.r) / categories.length, bw = Math.max(2, Math.min(22, band - 2, band * 0.72));
     const X = (i) => m.l + band * (i + 0.5);
     const Y = (v) => m.t + (1 - (v - ylo) / (yhi - ylo)) * (h - m.t - m.b);
-    let svg = `<g class="grid">${ticks.map((v) => `<line x1="${m.l}" x2="${width - m.r}" y1="${Y(v)}" y2="${Y(v)}"/>`).join("")}</g>`;
+    const hatch = (name) => `<pattern id="${id}-${name}" patternUnits="userSpaceOnUse" width="4" height="4" patternTransform="rotate(45)"><line x1="0" y1="0" x2="0" y2="4" stroke="var(--${name})" stroke-width="1"/></pattern>`;
+    let svg = `<defs>${hatch("in")}${hatch("out")}</defs>`;
+    svg += `<g class="grid">${ticks.map((v) => `<line x1="${m.l}" x2="${width - m.r}" y1="${Y(v)}" y2="${Y(v)}"/>`).join("")}</g>`;
     svg += ticks.map((v) => `<text x="${m.l - 6}" y="${Y(v) + 4}" text-anchor="end">${v.toLocaleString("en-GB")}</text>`).join("");
     svg += `<text x="${m.l - 6}" y="10" text-anchor="end">${esc(unit)}</text>`;
-    const labelPx = Math.max(...categories.map((c) => String(c).length)) * 6 + 12;
+    const labelPx = Math.max(...categories.map((c) => String(c).length)) * 6.2 + 12;
     const every = Math.max(1, Math.ceil((categories.length * labelPx) / (width - m.l - m.r)));
     svg += categories.map((c, i) => (i % every ? "" : `<text x="${X(i)}" y="${h - 8}" text-anchor="middle">${esc(c)}</text>`)).join("");
+    let firstPartial = -1;
     vals.forEach((v, i) => {
       if (v == null || v === 0) return;
+      const side = v > 0 ? "in" : "out";
       const y0 = Y(0), y1 = Y(v), top = Math.min(y0, y1), hh = Math.max(1, Math.abs(y1 - y0));
-      svg += `<rect class="${v > 0 ? "b-in" : "b-out"}${partial[i] ? " partial" : ""}" x="${X(i) - bw / 2}" y="${top}" width="${bw}" height="${hh}" rx="2"/>`;
+      if (partial[i]) {
+        if (firstPartial < 0) firstPartial = i;
+        svg += `<rect class="partial p-${side}" style="fill:url(#${id}-${side})" x="${X(i) - bw / 2}" y="${top}" width="${bw}" height="${hh}"/>`;
+      } else {
+        svg += `<rect class="b-${side}" x="${X(i) - bw / 2}" y="${top}" width="${bw}" height="${hh}"/>`;
+      }
     });
     svg += `<line class="zero" x1="${m.l}" x2="${width - m.r}" y1="${Y(0)}" y2="${Y(0)}"/>`;
+    if (firstPartial >= 0 && flag) {
+      const x = X(firstPartial) - bw / 2, right = x > width * 0.6;
+      svg += `<text class="flag" x="${right ? x + bw : x}" y="${m.t - 6}" text-anchor="${right ? "end" : "start"}">${esc(flag)} →</text>`;
+    }
     svg += `<line class="cross" x1="0" x2="0" y1="${m.t}" y2="${h - m.b}" visibility="hidden"/>`;
     el.innerHTML = `<svg class="chart" viewBox="0 0 ${width} ${h}" width="${width}" height="${h}" tabindex="0" role="img" aria-label="${esc(aria || "Chart")}. Use the arrow keys to read values.">${svg}</svg>`;
-    const tipHtml = (i) => `<div class="t">${esc(categories[i])} · ${esc(unit)}</div><div class="r"><span>${vals[i] == null ? "" : vals[i] >= 0 ? "In" : "Out"}</span><span>${vals[i] == null ? "–" : vals[i].toLocaleString("en-GB", { minimumFractionDigits: digits, maximumFractionDigits: digits })}</span></div>${notes[i] ? `<div class="small muted">${esc(notes[i])}</div>` : ""}`;
+    const tipHtml = (i) => `<div class="t">${esc(categories[i])} · ${esc(unit)}</div><div class="r"><span>${vals[i] == null ? "" : vals[i] >= 0 ? "Net inflow" : "Net outflow"}</span><span>${vals[i] == null ? "–" : Math.abs(vals[i]).toLocaleString("en-GB", { minimumFractionDigits: digits, maximumFractionDigits: digits })}</span></div>${notes[i] ? `<div class="small muted">${esc(notes[i])}</div>` : ""}`;
     wire(el, width, categories.map((c, i) => X(i)), tipHtml, m, h);
   };
   observe(el, draw);

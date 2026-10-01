@@ -4,7 +4,8 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Brazil fund flows</title>
-  <meta name="description" content="Money in and out of Brazil's investment funds, from CVM's daily fund report, read every time CVM rewrites it, with how much of each day has been reported so far.">
+  <meta name="description" content="Money in and out of Brazil's investment funds, from CVM's daily fund report, read every time CVM rewrites it, with how much of each day has been reported so far. Industry and category totals only.">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%23f5f1e8'/%3E%3Crect y='0' width='32' height='3' fill='%237a1f2e'/%3E%3Ctext x='16' y='25' text-anchor='middle' font-family='Georgia,serif' font-size='21' font-style='italic' fill='%231b1813'%3Eff%3C/text%3E%3C/svg%3E">
   <script>
     // Apply a saved theme before the first paint.
     try { const t = localStorage.getItem("theme"); if (t === "light" || t === "dark") document.documentElement.dataset.theme = t; } catch (e) {}
@@ -12,25 +13,28 @@
   <link rel="stylesheet" href="/static/css/app.css">
 </head>
 <body>
-<header class="app">
-  <div class="wrap bar">
-    <a class="brand" href="/" data-link>Brazil fund flows</a>
-    <nav class="tabs" aria-label="Views">
-      <a href="/" data-link>Overview</a>
-      <a href="/flows" data-link>Flows</a>
-      <a href="/reporting" data-link>Reporting</a>
-      <a href="/status" data-link>Status</a>
-      <a href="/method" data-link>Method</a>
-    </nav>
-    <button class="icon-btn" id="theme" type="button" aria-label="Switch between light and dark theme" title="Theme">◐</button>
+<header class="masthead">
+  <div class="wrap">
+    <div class="row">
+      <a class="wordmark" href="/" data-link>Brazil fund flows</a>
+      <nav class="tabs" aria-label="Views">
+        <a href="/" data-link>Overview</a>
+        <a href="/flows" data-link>Flows</a>
+        <a href="/reporting" data-link>Reporting</a>
+        <a href="/status" data-link>Status</a>
+        <a href="/method" data-link>Method</a>
+      </nav>
+      <button class="theme" id="theme" type="button" aria-label="Switch between light and dark theme">Dark</button>
+    </div>
+    <p class="dateline" id="dateline" aria-live="polite"><span class="muted">Loading…</span></p>
   </div>
-  <div class="statusbar" aria-live="polite"><div class="wrap" id="statusbar"><span class="muted">Loading status…</span></div></div>
 </header>
 <main class="wrap" id="view" tabindex="-1"></main>
-<footer class="app">
+<footer class="colophon">
   <div class="wrap">
-    <p>Data: Comissão de Valores Mobiliários (CVM), <a href="https://dados.cvm.gov.br/">dados.cvm.gov.br</a>, under the Open Database License (ODbL); the daily totals derived here are offered under the same licence (<a href="/data/daily-totals.csv">CSV</a>). Not endorsed by CVM.</p>
-    <p>Industry and category totals only: no fund is named, ranked or rated. Not investment advice. A dated portfolio project by Tiago Dantas, started October 2026, on public data. Not client work.</p>
+    <p>Source: Comissão de Valores Mobiliários (CVM), <a href="https://dados.cvm.gov.br/">dados.cvm.gov.br</a>, Open Database License. The daily totals derived here are offered under the same licence: <a href="/data/daily-totals.csv">daily-totals.csv</a>. Not endorsed by CVM.</p>
+    <p>Industry and category totals only; no fund is named, ranked or rated. Not investment advice.</p>
+    <p>Tiago Dantas · October 2026 · a dated portfolio project on public data, not client work · <a href="/method" data-link>Method</a></p>
   </div>
 </footer>
 <div id="tooltip" role="status"></div>

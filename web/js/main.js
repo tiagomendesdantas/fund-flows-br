@@ -1,4 +1,5 @@
-// Shell: routing on real paths (history API), the status bar, the theme toggle, and refresh.
+// Shell: routing on real paths (history API), the dateline in the masthead, the theme switch,
+// and a periodic refresh.
 import { abortAll, getJSON } from "./api.js";
 import { hideTip } from "./chart.js";
 import { dayOnly, esc, fmtTime, pct } from "./fmt.js";
@@ -56,43 +57,46 @@ document.addEventListener("click", (e) => {
 });
 window.addEventListener("popstate", route);
 
-// Status bar: is the collector alive, which CVM file was read last, how much of the latest
-// mostly-reported day is in.
-const STATE_WORDS = { ok: "Collector running", late: "Collector late", failing: "Collector not running" };
-async function status() {
-  const el = document.getElementById("statusbar");
+// The dateline: which CVM file the page reflects, when it was last read, how much of the latest
+// mostly-reported day is in, and whether the collector is running.
+const STATE_WORDS = { ok: "collector running", late: "collector late", failing: "collector not running" };
+async function dateline() {
+  const el = document.getElementById("dateline");
   try {
-    const o = await getJSON("/api/overview", "statusbar");
+    const o = await getJSON("/api/overview", "dateline");
     window.dispatchEvent(new CustomEvent("overview", { detail: o }));
-    const c = o.collector;
     const lag2 = (o.completeness || []).find((d) => d.lag === 2);
     el.innerHTML = [
-      `<span><span class="dot ${esc(c.state)}"></span>${STATE_WORDS[c.state] || esc(c.state)}</span>`,
-      o.file_day ? `<span>CVM file of ${dayOnly(o.file_day)}</span>` : "",
-      lag2 ? `<span>${dayOnly(lag2.dt)}: ${pct(lag2.share, 0)} of funds in</span>` : "",
-      `<span class="muted">Page updated ${fmtTime(o.as_of)}</span>`,
-    ].filter(Boolean).join("");
+      o.file_day ? `CVM file of ${esc(dayOnly(o.file_day))}` : "No CVM file read yet",
+      `updated ${esc(fmtTime(o.as_of))} BRT`,
+      lag2 ? `${esc(dayOnly(lag2.dt))}: ${esc(pct(lag2.share, 0))} of funds in` : "",
+      `<span class="${o.collector.state === "ok" ? "" : "attention"}">${STATE_WORDS[o.collector.state] || esc(o.collector.state)}</span>`,
+    ].filter(Boolean).join(" · ");
   } catch (e) {
-    if (e?.name !== "AbortError") el.innerHTML = `<span><span class="dot failing"></span>Status unavailable</span>`;
+    if (e?.name !== "AbortError") el.innerHTML = `<span class="attention">status unavailable</span>`;
   }
 }
 
 function tick() {
   if (document.hidden) return;
-  status();
+  dateline();
   current?.refresh?.();
 }
 
-// Theme: light by default; the toggle cycles light and dark and is remembered on this device.
-document.getElementById("theme").addEventListener("click", () => {
-  const root = document.documentElement;
-  const dark = root.dataset.theme ? root.dataset.theme === "dark" : matchMedia("(prefers-color-scheme: dark)").matches;
-  root.dataset.theme = dark ? "light" : "dark";
-  try { localStorage.setItem("theme", root.dataset.theme); } catch (e) { /* storage may be blocked */ }
+// Theme: light by default; the switch names the theme it leads to and is remembered on this device.
+const themeButton = document.getElementById("theme");
+const isDark = () => (document.documentElement.dataset.theme ? document.documentElement.dataset.theme === "dark" : matchMedia("(prefers-color-scheme: dark)").matches);
+const labelTheme = () => { themeButton.textContent = isDark() ? "Light" : "Dark"; };
+themeButton.addEventListener("click", () => {
+  document.documentElement.dataset.theme = isDark() ? "light" : "dark";
+  try { localStorage.setItem("theme", document.documentElement.dataset.theme); } catch (e) { /* storage may be blocked */ }
+  labelTheme();
 });
+matchMedia("(prefers-color-scheme: dark)").addEventListener("change", labelTheme);
+labelTheme();
 
 document.addEventListener("visibilitychange", () => { if (!document.hidden) tick(); });
 route();
-status();
+dateline();
 clearInterval(timer);
 timer = setInterval(tick, REFRESH_MS);

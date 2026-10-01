@@ -50,6 +50,31 @@ def test_every_page_and_api_answers_without_a_cnpj(client):
         assert not CNPJ.search(r.text), url
 
 
+def test_the_headline_is_built_from_the_response(client):
+    o = client.get("/api/overview").json()
+    assert o["headline"].startswith("Net inflow of R$")
+    assert "business days" in o["headline"] and o["headline"].endswith(".")
+
+
+def test_headline_templates():
+    from flows.views import headline
+    base = {"this_month": {"month": "2026-10", "segments": [], "partial_days": 0},
+            "last_month": {"month": "2026-09", "partial_days": 4, "segments": [
+                {"segment": "direct", "net": -16.0e9, "days": 21}]},
+            "assets": {"dt": "2026-09-23", "pl": 9.30e12}}
+    assert headline(base) == ("Net outflow of R$16.0 bn in September, over 21 business days with 4 "
+                              "still arriving; no day of October is mostly reported yet. "
+                              "Net assets R$9.30 tn on 23 September.")
+    base["this_month"]["segments"] = [{"segment": "direct", "net": 3.1e9, "days": 14}]
+    base["this_month"]["partial_days"] = 3
+    assert headline(base).startswith("Net inflow of R$3.1 bn in October so far, over 14 business "
+                                     "days with 3 still arriving, after R$16.0 bn of outflow in "
+                                     "September.")
+    assert headline({"this_month": {"month": "2026-10", "segments": [], "partial_days": 0},
+                     "last_month": {"month": "2026-09", "segments": [], "partial_days": 0},
+                     "assets": None}) == "No day is mostly reported yet."
+
+
 def test_hidden_segments_stay_hidden(client):
     flows = client.get("/api/flows?segment=direct:Cambial").json()
     assert flows["daily"] == [] and flows["months"] == [] and flows["hidden_days"] > 0
