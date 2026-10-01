@@ -13,7 +13,7 @@ import pandas as pd
 from sqlalchemy import and_, bindparam, func, select
 from sqlalchemy.engine import Connection, Engine
 
-from flows import db, sources
+from flows import db, register, sources, totals
 from flows.sources import KEY, LOCAL_OFFSET, VALUES
 
 CHUNK = 20_000
@@ -46,6 +46,12 @@ def _download(eng: Engine, dataset: str, month: str, url: str):
         db.log_fetch(eng, source="cvm", target=target, status="error", detail=f"HTTP {got.status}")
         return None, last, f"{target}: HTTP {got.status}"
     return got, last, ""
+
+
+def _latest_release(eng: Engine, dataset: str) -> int | None:
+    with eng.connect() as conn:
+        return conn.execute(select(func.max(db.releases.c.id))
+                            .where(db.releases.c.dataset == dataset)).scalar()
 
 
 def _new_release(conn: Connection, dataset: str, month: str, got, rows: int, bootstrap: bool) -> int:
@@ -223,9 +229,50 @@ def check_releases(eng: Engine) -> list[str]:
 
 def collect_files(eng: Engine, now: pd.Timestamp | None = None) -> list[str]:
     now = now or pd.Timestamp(db.utcnow())
-    notes = [ingest_daily(eng, m, now) for m in months(now)]
+    notes = register.refresh(eng) if register.load(eng).empty else []
+    before = _latest_release(eng, "daily")
+    notes += [ingest_daily(eng, m, now) for m in months(now)]
     notes += [ingest_deliveries(eng, m) for m in months(now)]
+    first = pd.Timestamp(f"{months(now)[0]}01").date()
+    with eng.connect() as conn:
+        have = conn.execute(select(func.count()).select_from(db.daily_totals)
+                            .where(db.daily_totals.c.dt >= first)).scalar()
+    if _latest_release(eng, "daily") != before or not have:     # a new version, or none yet
+        notes.append(totals.refresh_live(eng, first, local_today(now)))
     return notes + check_releases(eng)
+
+
+HISTORY_FROM = "202101"
+
+
+def collect_history(eng: Engine, now: pd.Timestamp | None = None) -> list[str]:
+    """Totals for every month before the two collected live, from CVM's monthly files: read
+    once, then again only when CVM rewrites a file (months M-2 to M-11 weekly)."""
+    now = now or pd.Timestamp(db.utcnow())
+    if register.load(eng).empty:
+        register.refresh(eng)
+    classes = register.load(eng)
+    last = pd.Period(months(now)[0], "M") - 1
+    read, notes = 0, []
+    for period in pd.period_range(pd.Period(HISTORY_FROM, "M"), last, freq="M"):
+        month = period.strftime("%Y%m")
+        got, _, note = _download(eng, "history", month, sources.daily_url(month))
+        if got is None:
+            if not note.endswith("unchanged"):
+                notes.append(note)
+            continue
+        frame = sources.parse_daily(got.content)
+        with eng.begin() as conn:
+            _new_release(conn, "history", month, got, len(frame), True)
+        totals.store(eng, frame, classes, period.start_time.date(), period.end_time.date())
+        db.log_fetch(eng, source="cvm", target=f"history:{month}", status="ok", etag=got.etag,
+                     sha256=got.sha256, rows=len(frame))
+        read += 1
+    return [f"history: {read} months read"] + notes
+
+
+def collect_register(eng: Engine, now: pd.Timestamp | None = None) -> list[str]:
+    return register.refresh(eng)
 
 
 def run(eng: Engine, job: str, fn, *args) -> str:

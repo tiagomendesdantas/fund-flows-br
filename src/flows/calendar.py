@@ -7,6 +7,7 @@ from __future__ import annotations
 from datetime import date, timedelta
 from functools import lru_cache
 
+import numpy as np
 import pandas as pd
 from dateutil.easter import easter
 
@@ -32,9 +33,19 @@ def business_days(first: date, last: date) -> list[date]:
     return [d.date() for d in pd.date_range(first, last) if is_business_day(d.date())]
 
 
+@lru_cache(maxsize=1)
+def _index() -> np.ndarray:
+    return np.array(business_days(date(2000, 1, 1), date(2035, 12, 31)), dtype="datetime64[D]")
+
+
+def _count_upto(d: date) -> int:
+    """Business days on or before `d` since 2000."""
+    return int(np.searchsorted(_index(), np.datetime64(d, "D"), side="right"))
+
+
 def lag(competence: date, when: date) -> int:
     """Business days after the competence day, up to and including `when` (local dates): a report
     for Monday read on Tuesday is at lag 1."""
     if when <= competence:
         return 0
-    return len(business_days(competence + timedelta(days=1), when))
+    return _count_upto(when) - _count_upto(competence)

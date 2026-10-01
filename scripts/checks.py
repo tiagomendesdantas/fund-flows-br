@@ -142,6 +142,24 @@ def register_check(daily: pd.DataFrame) -> dict:
     return out
 
 
+def export_lags(out: dict) -> dict:
+    """Share of fund-days, net assets and gross flow in by each lag, across the months with a
+    delivery log: the table on the Reporting page (web/lags.json)."""
+    months = [m for m, v in out["months"].items() if "lags" in v]
+    table = []
+    for k in range(1, 7):
+        row = {"lag": k}
+        for name in ("count", "pl", "gross_flow"):
+            vals = [sum(v for key, v in out["months"][m]["lags"][f"share_by_k_{name}"].items()
+                        if int(key) <= k) for m in months]
+            row[name] = {"mean": round(sum(vals) / len(vals), 4), "min": round(min(vals), 4),
+                         "max": round(max(vals), 4)}
+        table.append(row)
+    lags = {"from": months[0], "to": months[-1], "by_lag": table}
+    (history.DATA.parent / "web" / "lags.json").write_text(json.dumps(lags, indent=1))
+    return lags
+
+
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--from", dest="first", default="202401")
@@ -174,6 +192,7 @@ def main() -> None:
     out["register"] = register_check(history.daily(args.last))
     path = history.DATA / "checks.json"
     path.write_text(json.dumps(out, indent=1, default=str))
+    export_lags(out)
     print("written", path)
 
 

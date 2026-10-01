@@ -49,6 +49,13 @@ def test_parse_daily_reads_keys_and_values():
     assert frame.loc[1, "resg"] == 20.0 and frame.loc[0, "dt"] == date(2026, 9, 29)
 
 
+def test_parse_daily_reads_the_layout_before_resolution_175():
+    frame = sources.parse_daily(zipped([
+        "TP_FUNDO;CNPJ_FUNDO;DT_COMPTC;VL_TOTAL;VL_QUOTA;VL_PATRIM_LIQ;CAPTC_DIA;RESG_DIA;NR_COTST",
+        "FI;00.000.000/0001-91;2021-06-30;100.0;1.5;100.0;10.0;0.0;5"]))
+    assert frame.loc[0, "cnpj"] == 191 and frame.loc[0, "sub"] == "" and frame.loc[0, "kind"] == "FI"
+
+
 def test_parse_daily_refuses_a_changed_layout():
     with pytest.raises(KeyError):
         sources.parse_daily(zipped(["A;B", "1;2"]))

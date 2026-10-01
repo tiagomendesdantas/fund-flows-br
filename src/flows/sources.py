@@ -26,6 +26,7 @@ DAILY_COLUMNS = {"TP_FUNDO_CLASSE": "kind", "CNPJ_FUNDO_CLASSE": "cnpj", "ID_SUB
                  "DT_COMPTC": "dt", "VL_TOTAL": "total", "VL_QUOTA": "quota",
                  "VL_PATRIM_LIQ": "pl", "CAPTC_DIA": "captc", "RESG_DIA": "resg",
                  "NR_COTST": "cotst"}
+LEGACY_DAILY = {"TP_FUNDO": "TP_FUNDO_CLASSE", "CNPJ_FUNDO": "CNPJ_FUNDO_CLASSE"}
 VALUES = ["total", "quota", "pl", "captc", "resg", "cotst"]
 KEY = ["cnpj", "sub", "dt"]
 
@@ -89,8 +90,10 @@ def parse_daily(content: bytes) -> pd.DataFrame:
     """One row per fund class (or subclass) and day: key cnpj (digits), sub ('' for a class
     without subclasses), dt; the six reported values; kind as reported."""
     raw = pd.read_csv(_member(content), sep=";", encoding="latin-1",
-                      dtype={c: str for c in ("TP_FUNDO_CLASSE", "CNPJ_FUNDO_CLASSE",
-                                              "ID_SUBCLASSE", "DT_COMPTC")})
+                      dtype={c: str for c in ("TP_FUNDO_CLASSE", "CNPJ_FUNDO_CLASSE", "TP_FUNDO",
+                                              "CNPJ_FUNDO", "ID_SUBCLASSE", "DT_COMPTC")})
+    if "CNPJ_FUNDO" in raw.columns:      # layout before CVM Resolution 175 (files up to 2023-11)
+        raw = raw.rename(columns=LEGACY_DAILY).assign(ID_SUBCLASSE="")
     missing = set(DAILY_COLUMNS) - set(raw.columns)
     if missing:
         raise KeyError(f"daily report without {sorted(missing)}")

@@ -55,3 +55,17 @@ only where this collector read them, from 2026-10-01.
 | Reporting lag | In the file written on the morning of a business day, the business day before is under 1% in (reports sent the same evening), the day before that 84–94% (by count; 84–96% of net assets), and the one before that 93–99%; 98–99.5% are in by the fifth (ranges across the months of 2025-01 to 2026-09). | Estimates start at lag 2, the first file where a day is mostly in. |
 | Late reporters | Fund-days first in at lag 3 or later hold 7.4% of net assets and 7.2% of gross flow (2025-01 to 2026-09), and their absolute net flow is larger relative to their size: 0.75% of net assets on average, against 0.43% for those in by lag 2. | Scaling the reported part up by net assets alone is likely to understate the missing flow; tested in the development backtest. |
 | Delivery log files | Each month's file covers that month's competence days only (checked for every month from 2025-01). | Kept by file month all the same. |
+
+## Source gaps
+
+- **13–16 January 2026.** 49 fund classes holding R$1.67 trillion of net assets (about a fifth of
+  the industry, and R$1.0 trillion of the totals without funds of funds) are absent from CVM's file
+  on those four days, and present on the days before and after. They never arrived: the totals for
+  those days are short, and are kept as published. Found from a dip in net assets on 2026-10-01;
+  a systematic check for such gaps since 2021 comes with the backtest, and days with a gap will be
+  scored separately, under a rule written before the test is run.
+- **Funds missing from both registers ("Unclassified").** Mostly classes being wound up: in August
+  2026, 363 such classes reported, 152 stopped before the month's last week, and their redemptions
+  far exceed their assets at the end. Of their large redemptions (above R$100 million on a day),
+  R$2.5 billion of R$10.6 billion reappeared the same day as a subscription within 0.5% of the same
+  amount in a registered class, as a merger would; the totals without funds of funds net those out.

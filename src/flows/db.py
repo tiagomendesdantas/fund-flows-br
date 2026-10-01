@@ -104,6 +104,38 @@ release_checks = Table(
     Column("checked_at", DateTime, nullable=False),
 )
 
+# The register as last read: each class's CVM category and whether it is a fund of funds.
+classes = Table(
+    "classes", metadata,
+    Column("cnpj", BigInteger, primary_key=True),
+    Column("category", String, nullable=False),
+    Column("fic", Integer), Column("exclusive", Integer),     # 1, 0, or unknown
+    Column("source", String, nullable=False),                 # registro_classe or cad_fi
+    Column("updated_at", DateTime, nullable=False),
+)
+
+# Industry totals by day and segment (flows.totals), from the latest values: final once every
+# report is in, partial for the latest days.
+daily_totals = Table(
+    "daily_totals", metadata,
+    Column("dt", Date, primary_key=True), Column("segment", String, primary_key=True),
+    Column("n", Integer, nullable=False),
+    *[Column(c, Float) for c in ("pl", "captc", "resg", "cotst")],
+    Column("top_share", Float), Column("shown", Integer, nullable=False),
+    Column("updated_at", DateTime, nullable=False),
+)
+
+# Monthly totals by segment: whether a month's figure may be shown depends on the largest class's
+# share of the whole month's gross flow, not on any one day.
+monthly_totals = Table(
+    "monthly_totals", metadata,
+    Column("month", String, primary_key=True), Column("segment", String, primary_key=True),
+    Column("n", Integer, nullable=False),
+    Column("captc", Float), Column("resg", Float),
+    Column("top_share", Float), Column("shown", Integer, nullable=False),
+    Column("updated_at", DateTime, nullable=False),
+)
+
 fetches = Table(
     "fetches", metadata,
     Column("id", Integer, primary_key=True, autoincrement=True),

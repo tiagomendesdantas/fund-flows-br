@@ -1,8 +1,11 @@
 """In-process scheduler for the web service: one background thread, one job at a time.
 
-    files   at 04:10, 05:10, 07:10 and 11:10 UTC: CVM rewrote the files at about 03:52 (daily
-            report) and 04:46 (delivery log) on the days checked; the later slots catch late or
-            repeated rewrites. A slot with nothing new costs two conditional requests per file.
+    files     at 04:10, 05:10, 07:10 and 11:10 UTC: CVM rewrote the files at about 03:52 (daily
+              report) and 04:46 (delivery log) on the days checked; the later slots catch late
+              or repeated rewrites. A slot with nothing new costs one conditional request per
+              file. A new daily release also refreshes the totals of the two live months.
+    register  at 10:30 UTC: categories and funds of funds (CVM updates it Tuesday to Saturday)
+    history   Sundays at 12:10 UTC: totals of every earlier month whose file CVM rewrote
 
 On Postgres a session advisory lock keeps two replicas from running the same job; each slot runs
 at most once (the `runs` table is the record). A job that fails is recorded and retried at the
@@ -22,15 +25,24 @@ from flows import collect, db
 
 log = logging.getLogger("flows.scheduler")
 FILE_TIMES = ((4, 10), (5, 10), (7, 10), (11, 10))
+REGISTER_TIME = (10, 30)
+HISTORY_TIME = (6, 12, 10)      # Sundays (weekday 6) at 12:10
 LOCK_ID = 20261001
-JOBS = {"files": collect.collect_files}
+JOBS = {"files": collect.collect_files, "register": collect.collect_register,
+        "history": collect.collect_history}
 
 
 def due(now: pd.Timestamp, last: dict[str, pd.Timestamp]) -> list[str]:
     slot = now.floor("min")
-    if (slot.hour, slot.minute) in FILE_TIMES and last.get("files") != slot:
-        return ["files"]
-    return []
+    hm = (slot.hour, slot.minute)
+    jobs = []
+    if hm == REGISTER_TIME and last.get("register") != slot:
+        jobs.append("register")
+    if hm in FILE_TIMES and last.get("files") != slot:
+        jobs.append("files")
+    if (slot.weekday(), *hm) == HISTORY_TIME and last.get("history") != slot:
+        jobs.append("history")
+    return jobs
 
 
 def _with_lock(eng, fn) -> bool:
@@ -52,8 +64,10 @@ def _with_lock(eng, fn) -> bool:
 def loop(stop: threading.Event) -> None:
     eng = db.engine()
     last: dict[str, pd.Timestamp] = {}
-    # Catch up once at start: a restart should not wait for the next slot.
-    _with_lock(eng, lambda: collect.run(eng, "files", JOBS["files"]))
+    # Catch up once at start: a restart should not wait for the next slot. The history job reads
+    # only files CVM has rewritten since, after its first run (about 70 files, a few minutes).
+    for job in ("files", "history"):
+        _with_lock(eng, lambda job=job: collect.run(eng, job, JOBS[job]))
     while not stop.is_set():
         now = pd.Timestamp(db.utcnow())
         for job in due(now, last):
