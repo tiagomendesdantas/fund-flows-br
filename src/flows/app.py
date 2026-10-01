@@ -28,8 +28,18 @@ async def lifespan(_: FastAPI):
         stop.set()
 
 
+class Revalidated(StaticFiles):
+    """Static files the browser must revalidate (cheap with the ETag), so a deploy is seen at
+    once instead of after a heuristic cache expiry."""
+
+    def file_response(self, *args, **kwargs):
+        response = super().file_response(*args, **kwargs)
+        response.headers["Cache-Control"] = "no-cache"
+        return response
+
+
 app = FastAPI(title="fund-flows-br", docs_url="/docs", redoc_url=None, lifespan=lifespan)
-app.mount("/static", StaticFiles(directory=WEB), name="static")
+app.mount("/static", Revalidated(directory=WEB), name="static")
 
 
 def now() -> pd.Timestamp:

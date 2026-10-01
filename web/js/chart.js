@@ -395,7 +395,8 @@ export function signedBars(el, { categories, values, partial = [], unit, scale =
     let svg = `<g class="grid">${ticks.map((v) => `<line x1="${m.l}" x2="${width - m.r}" y1="${Y(v)}" y2="${Y(v)}"/>`).join("")}</g>`;
     svg += ticks.map((v) => `<text x="${m.l - 6}" y="${Y(v) + 4}" text-anchor="end">${v.toLocaleString("en-GB")}</text>`).join("");
     svg += `<text x="${m.l - 6}" y="10" text-anchor="end">${esc(unit)}</text>`;
-    const every = Math.max(1, Math.ceil((categories.length * 46) / (width - m.l - m.r)));
+    const labelPx = Math.max(...categories.map((c) => String(c).length)) * 6 + 12;
+    const every = Math.max(1, Math.ceil((categories.length * labelPx) / (width - m.l - m.r)));
     svg += categories.map((c, i) => (i % every ? "" : `<text x="${X(i)}" y="${h - 8}" text-anchor="middle">${esc(c)}</text>`)).join("");
     vals.forEach((v, i) => {
       if (v == null || v === 0) return;
