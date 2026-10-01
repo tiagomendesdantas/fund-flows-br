@@ -49,3 +49,10 @@ def lag(competence: date, when: date) -> int:
     if when <= competence:
         return 0
     return _count_upto(when) - _count_upto(competence)
+
+
+def shift(d: date, k: int) -> date:
+    """The k-th business day after `d` (k < 0: before). A non-business `d` counts from the last
+    business day before it, so shift(Saturday, 1) is Monday."""
+    idx = _count_upto(d) - 1 + k
+    return _index()[idx].astype("datetime64[D]").astype(object)

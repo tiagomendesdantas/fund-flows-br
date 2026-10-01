@@ -62,8 +62,9 @@ only where this collector read them, from 2026-10-01.
   the industry, and R$1.0 trillion of the totals without funds of funds) are absent from CVM's file
   on those four days, and present on the days before and after. They never arrived: the totals for
   those days are short, and are kept as published. Found from a dip in net assets on 2026-10-01;
-  a systematic check for such gaps since 2021 comes with the backtest, and days with a gap will be
-  scored separately, under a rule written before the test is run.
+  a detector (`flows.gaps`: funds present within 5 business days on both sides but absent on the
+  day, holding more than 1% of net assets) run over 2021-01 to 2026-09 found no other gap. Gap days
+  are scored separately in the backtest (`docs/EVAL_PLAN.md`).
 - **Funds missing from both registers ("Unclassified").** Mostly classes being wound up: in August
   2026, 363 such classes reported, 152 stopped before the month's last week, and their redemptions
   far exceed their assets at the end. Of their large redemptions (above R$100 million on a day),

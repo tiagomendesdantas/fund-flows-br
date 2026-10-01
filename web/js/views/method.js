@@ -34,7 +34,7 @@ export default function method(main) {
   <aside class="sec">
     <div class="sec-head"><h2>Notices</h2></div>
     <dl class="notices" style="margin-top:12px">
-      <dt>13–16 Jan 2026</dt><dd><strong>Source gap.</strong> 49 fund classes holding R$1.67 trillion are missing from CVM's file on these four days and present before and after; the totals are short by about R$1.0 trillion of net assets and kept as published. <span class="muted">Checked 1 Oct 2026.</span></dd>
+      <dt>13–16 Jan 2026</dt><dd><strong>Source gap.</strong> 49 fund classes holding R$1.67 trillion are missing from CVM's file on these four days and present before and after; the totals are short by about R$1.0 trillion of net assets and kept as published. A search over every business day from 2021 found no other gap. <span class="muted">Checked 1 Oct 2026.</span></dd>
       <dt>1 Oct 2026</dt><dd>Collection starts at 13:49 UTC. September 2026 was read as already published, so its figures are not first-published ones; first-published figures start with the file of 2 October.</dd>
     </dl>
   </aside>
