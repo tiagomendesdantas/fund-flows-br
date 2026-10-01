@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Brazil fund flows</title>
+<style>
+  :root { --bg: #f7f7f5; --card: #ffffff; --ink: #1d1d1b; --muted: #5f5f5a; --line: #e2e1dc;
+          --ok: #1f7a4d; --late: #9a6400; --bad: #b3261e; color-scheme: light; }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg: #151514; --card: #1e1e1c; --ink: #ecebe6; --muted: #a3a29b; --line: #34332f;
+            --ok: #5cc28f; --late: #e0a43a; --bad: #f08a80; color-scheme: dark; } }
+  body { margin: 0; background: var(--bg); color: var(--ink);
+         font: 15px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif; }
+  main { max-width: 1080px; margin: 0 auto; padding: 24px 16px 48px; }
+  h1 { font-size: 24px; margin: 0 0 4px; }
+  h2 { font-size: 17px; margin: 0 0 8px; }
+  p { margin: 0 0 10px; }
+  .sub, .note, .muted { color: var(--muted); }
+  .note { font-size: 13px; margin-top: 8px; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 10px;
+          padding: 16px; margin-top: 16px; }
+  .pill { display: inline-block; padding: 1px 10px; border-radius: 99px; font-weight: 600;
+          border: 1px solid currentColor; font-size: 13px; }
+  .ok { color: var(--ok); } .late { color: var(--late); } .failing, .bad { color: var(--bad); }
+  .table-scroll { overflow-x: auto; }
+  table { border-collapse: collapse; width: 100%; font-size: 14px; }
+  th, td { text-align: left; padding: 6px 10px 6px 0; border-bottom: 1px solid var(--line);
+           white-space: nowrap; vertical-align: top; }
+  th { color: var(--muted); font-weight: 600; }
+  td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+  pre { margin: 0; white-space: pre-wrap; font-size: 12px; color: var(--muted); }
+  footer { margin-top: 24px; font-size: 13px; color: var(--muted); }
+  a { color: inherit; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Brazil fund flows</h1>
+  <p class="sub">CVM's daily report of investment funds, read every time CVM rewrites it. Collection
+    only for now: the estimates of each day's final totals, and their scorecard, come next.</p>
+  <p id="collector" class="muted">Loading…</p>
+
+  <section class="card">
+    <h2>The daily report as last read</h2>
+    <p class="note">Per day: fund classes and subclasses reported, how many the last file added
+      and changed, and whether the delivery log explains the count. All funds, including funds
+      that invest in other funds, so flows are counted more than once; days still arriving are
+      partial. R$ billion.</p>
+    <div class="table-scroll"><table id="days"></table></div>
+  </section>
+
+  <section class="card">
+    <h2>Files read</h2>
+    <div class="table-scroll"><table id="releases"></table></div>
+  </section>
+
+  <section class="card">
+    <h2>Collector runs</h2>
+    <div class="table-scroll"><table id="runs"></table></div>
+  </section>
+
+  <footer>Data: Comissão de Valores Mobiliários (CVM), dados.cvm.gov.br, under the Open Database
+    License (ODbL). Totals only: no fund is named, ranked or rated. Not investment advice.</footer>
+</main>
+<script>
+  const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+  const bn = (v) => v == null ? "–" : (v / 1e9).toLocaleString("en", { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+  const int = (v) => v == null ? "–" : Number(v).toLocaleString("en");
+  const when = (s) => s ? s.replace("T", " ") + " UTC" : "–";
+  const table = (el, head, rows) => {
+    el.innerHTML = `<thead><tr>${head.map(([h, cls]) => `<th class="${cls || ""}">${h}</th>`).join("")}</tr></thead>`
+      + `<tbody>${rows.length ? rows.join("") : `<tr><td class="muted" colspan="${head.length}">Nothing yet.</td></tr>`}</tbody>`;
+  };
+  fetch("/api/status").then((r) => r.json()).then((s) => {
+    const c = s.collector;
+    document.getElementById("collector").innerHTML = `<span class="pill ${c.state}">${esc(c.state)}</span>
+      Last successful run ${esc(when(c.last_success))}; next check ${esc(when(c.next))}.`;
+    table(document.getElementById("days"),
+      [["Day"], ["Fund-days", "num"], ["New in last file", "num"], ["Changed", "num"], ["Delivery log", "num"],
+       ["Subscriptions", "num"], ["Redemptions", "num"], ["Net", "num"]],
+      s.days.map((d) => `<tr><td>${esc(d.dt)}</td><td class="num">${int(d.n)}</td><td class="num">${int(d.n_new)}</td>
+        <td class="num">${int(d.n_changed)}</td>
+        <td class="num ${d.rebuilt == null ? "muted" : d.rebuilt === d.n ? "ok" : "bad"}">${d.rebuilt == null ? "not checked" : d.rebuilt === d.n ? "matches" : int(d.rebuilt)}</td>
+        <td class="num">${bn(d.captc)}</td><td class="num">${bn(d.resg)}</td><td class="num">${bn(d.captc - d.resg)}</td></tr>`));
+    table(document.getElementById("releases"),
+      [["File"], ["Written by CVM"], ["Read"], ["Rows", "num"], [""]],
+      s.releases.map((r) => `<tr><td>${esc(r.dataset)} ${esc(r.month)}</td><td>${esc(when(r.written))}</td><td>${esc(when(r.read))}</td>
+        <td class="num">${int(r.rows)}</td><td class="muted">${r.bootstrap ? "first read of a month already published" : ""}</td></tr>`));
+    table(document.getElementById("runs"),
+      [["Started"], ["Status"], ["Detail"]],
+      s.runs.map((r) => `<tr><td>${esc(when(r.started))}</td><td class="${r.status === "ok" ? "ok" : r.status === "running" ? "muted" : "bad"}">${esc(r.status)}</td>
+        <td><pre>${esc((r.detail || "").split("\n").slice(0, 6).join("\n"))}</pre></td></tr>`));
+  }).catch(() => { document.getElementById("collector").textContent = "Could not load the status."; });
+</script>
+</body>
+</html>
