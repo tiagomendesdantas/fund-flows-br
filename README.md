@@ -1,16 +1,16 @@
 # fund-flows-br
 
-**Forecast evaluation on live public data; built, backtested and taken offline.** Money in and out
-of Brazil's investment funds from CVM's daily report, an estimate of each day's final totals before
-CVM has received every fund's report, and a backtest, under rules committed before it ran, of how
-good such an estimate can be.
+**Nowcasting under reporting delays, on live public data; built, backtested and taken offline.**
+Money in and out of Brazil's investment funds from CVM's daily report, a nowcast of each day's
+final totals before CVM has received every fund's report, and a backtest, under rules committed
+before it ran, of how good such a nowcast can be.
 
 **The finding.** Two business days after a day, CVM's file holds 84–94% of fund classes. Its own
 sum is already within about R$1.4 billion of the final net flow on an average day (1.5 basis points
 of the industry's net assets, against a median daily net flow of about R$8 billion), and none of
-five methods, including a LightGBM model trained on 906,535 missing fund-days, improves on it by a
-margin the data can tell from noise. The value of an estimate lies in its interval and in the
-record of how fast the figures settle, not in a better point.
+five nowcasting methods, including a LightGBM model trained on 906,535 missing fund-days, improves
+on it by a margin the data can tell from noise. The value of a nowcast lies in its interval and in
+the record of how fast the figures settle, not in a better point.
 
 The site ran on Railway on 1 October 2026 and was taken offline the same evening to save hosting
 costs. Everything runs locally; screenshots are in `docs/screenshots/`.
@@ -24,7 +24,7 @@ costs. Everything runs locally; screenshots are in `docs/screenshots/`.
 | Scheduled collection of every version of CVM's monthly files, conditional downloads, first and latest values kept per fund-day with a change log | `src/flows/collect.py`, `db.py`, `scheduler.py` |
 | Rebuilding what a past morning's file held, from the delivery log; verified to the fund-day | `src/flows/vintages.py`, DATA.md |
 | Industry and category totals since 2021 with a small-cell rule (no fund is ever identifiable) | `src/flows/totals.py` |
-| Five estimators of a day's final totals, from the plain sum to a per-fund model | `src/flows/nowcast.py` |
+| Five nowcasting methods for a day's final totals, from the plain sum to a per-fund model | `src/flows/nowcast.py` |
 | An evaluation plan committed before any run, a development year, a one-shot frozen test, a pre-registered decision rule with a block bootstrap, frozen intervals | `docs/EVAL_PLAN.md`, `scripts/backtest.py`, `docs/backtest/` |
 | A source-gap detector over 2021–2026 | `src/flows/gaps.py` |
 | Five pages in a financial-daily style: Overview, Flows, Reporting, Status, Method | `web/` |
@@ -35,7 +35,12 @@ Funds send CVM a daily report, mostly on the business day after. CVM rewrites it
 every morning with what has arrived, and more than half of the fund-days are later resubmitted.
 So the latest days in the file are partial: on the morning of a business day, the day before is
 under 1% in, the day before that 84–94% (about 93% of net assets), and 98–99.5% are in by the fifth
-business day. Can the final totals be estimated before the late reports arrive?
+business day. Can the final totals be nowcast before the late reports arrive?
+
+This is a nowcasting problem, not a forecasting one: the day is already past, and the task is to
+estimate its final figure from the reports that have arrived so far, with an interval, and to be
+graded when the figure settles. The same problem appears in epidemiology (cases by onset date
+under reporting delays) and in official statistics (first estimates later revised).
 
 ## Data
 
@@ -52,7 +57,7 @@ CVM open data under the Open Database License, no key:
 Facts, checks and the one source gap found (13–16 January 2026: 49 classes holding R$1.67 trillion
 absent from CVM's file) are in `DATA.md`.
 
-## How each method is built
+## How each nowcasting method is built
 
 All methods see only the fund-days delivered before the morning file was written; the final file is
 never consulted for what a method may know. A fund is expected if it reported on one of the
