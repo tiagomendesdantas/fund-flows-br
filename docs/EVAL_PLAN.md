@@ -142,6 +142,9 @@ statistic. The register as of the issue day defines categories.
 
 **2026-10-01 — development run done; results under "Development results".** No change to the plan.
 
+**2026-10-01 — frozen test scored once; results under "Test results".** The site was taken offline
+the same evening to save hosting costs; the code and the collector run locally (README).
+
 ## Development results
 
 **2026-10-01 — the development year (2025), run once under the plan above** (`scripts/backtest.py
@@ -172,6 +175,31 @@ Diagnostics. Cutoff at 00:00 / 00:52 / 03:00: reported 1.168 / 1.158 / 1.136 bn,
 
 For the test (Phase 4): default scale_up with these intervals; all five methods scored on the same
 cells; 13–16 January 2026 scored separately as gap days.
+
+## Test results
+
+**2026-10-01 — the frozen test (2026-01-01 to 2026-08-31), scored once** (`scripts/backtest.py
+--test --once`; estimates sha256 `16f21bc4682584f7`; outputs in `docs/backtest/test/`). 155 days
+(the first 10 business days of the window skipped as planned; 16 January set aside as a gap day,
+13–15 January fall in the skipped days), lags 2–5, 30,296 cells. The default was fixed on the
+development year: scale_up.
+
+Primary metric, lag-2 `direct` net MAE: reported R$1.36 bn; scale_up 1.42; model 1.30 at power 1.5
+(skill against scale_up +0.088, interval [−0.060, +0.224]: below the 0.10 threshold and the
+interval includes zero, so the rule's verdict stands on the test too); trailing 1.68;
+trailing_beta 1.69. By lag, reported 1.36 / 0.62 / 0.55 / 0.44 bn and scale_up 1.42 / 0.67 /
+0.59 / 0.47 (1.5 / 0.7 / 0.6 / 0.5 and 1.6 / 0.8 / 0.7 / 0.5 bps of net assets). Unexpected
+arrivals add +0.32 bn of net flow at lag 2 and +0.18 at lag 5.
+
+Intervals frozen on 2025, applied to 2026 (scale_up, `direct`): 80% level covers 80.6% of
+net-flow cells, 95% level 98.1% (captc 89.5% / 99.8%, resg 88.1% / 98.7%): inside the 70–90% and
+90–99% targets. Pooled across lags they are wide at lag 2 (92% / 100% on net) and tighter at
+longer lags; a by-lag table is a candidate for a later version, logged, not applied.
+
+Conclusion as published: at lag 2 the file's own sum is within about R$1.4 bn of the final net
+flow on an average day (1.5 bps of net assets); no method, including a per-fund model, improves on
+it by a margin the data can tell from noise. The value of the estimate lies in its interval and in
+the public record of how fast CVM's figures settle, not in a better point.
 
 ## Appendix: pinned inputs (SHA-256, first 16 hex digits)
 

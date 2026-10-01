@@ -70,3 +70,10 @@ only where this collector read them, from 2026-10-01.
   far exceed their assets at the end. Of their large redemptions (above R$100 million on a day),
   R$2.5 billion of R$10.6 billion reappeared the same day as a subscription within 0.5% of the same
   amount in a registered class, as a merger would; the totals without funds of funds net those out.
+
+## Collection window
+
+The collector ran on Railway from 2026-10-01 13:49 UTC until the evening of the same day, when the
+site was taken offline to save hosting costs. It read the September 2026 file (as already
+published, so not first-published values) and the delivery logs. The code runs locally against
+SQLite (`uv run uvicorn flows.app:app`), with the same scheduler.

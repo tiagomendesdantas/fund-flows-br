@@ -21,8 +21,8 @@ export default function method(main) {
     <p>Funds mostly report on the business day after the day reported. In the file CVM writes on a business-day morning, the day before is under 1% in; the day before that 84–94% of fund classes (about 93% of net assets); 98–99.5% are in by the fifth business day. Days in their first five business days are marked as still arriving everywhere.</p>
     <p>A check runs every morning: the fund-days first delivered before CVM wrote its file, and still active in the delivery log, must be exactly the fund-days in the file. On 1 October 2026 they matched on all 22 days of September. The same rule, applied to the log from January 2025, rebuilds which fund-days each past morning's file held, which is what makes estimates testable on the past; it is checked again on every new file. The log does not give their figures at the time, since a resubmission replaces them.</p>
 
-    <h2>Next</h2>
-    <p>Each morning, an estimate of the final total of every day still arriving, with 80% and 95% ranges, published before the late reports come in and graded against CVM's figure two weeks later. The methods, from the simple scale-up to a model of each missing fund, and the rules for choosing between them, will be written down and fixed before the test period is scored.</p>
+    <h2>Estimates</h2>
+    <p>Five ways of estimating a day's final totals from a morning's file were scored on 2025 and then once on January–August 2026, under rules fixed before any run (<code>docs/EVAL_PLAN.md</code>): the file's own sum, a scale-up by the missing funds' net assets, each missing fund's trailing mean, that mean with a category response, and a LightGBM model per missing fund. None improves on the file's own sum by a margin the data can tell from noise: two business days after a day, the sum is within about R$1.4 billion of the final net flow on an average day, 1.5 basis points of net assets. Scale-up is the default by the pre-registered rule; its 80% and 95% intervals, fitted on 2025, covered 81% and 98% of the 2026 days.</p>
 
     <h2>Limits</h2>
     <ul>
@@ -35,6 +35,7 @@ export default function method(main) {
     <div class="sec-head"><h2>Notices</h2></div>
     <dl class="notices" style="margin-top:12px">
       <dt>13–16 Jan 2026</dt><dd><strong>Source gap.</strong> 49 fund classes holding R$1.67 trillion are missing from CVM's file on these four days and present before and after; the totals are short by about R$1.0 trillion of net assets and kept as published. A search over every business day from 2021 found no other gap. <span class="muted">Checked 1 Oct 2026.</span></dd>
+      <dt>1 Oct 2026</dt><dd><strong>Offline.</strong> The site was taken down the same evening to save hosting costs, after the development backtest and the one-shot test were scored (results in the repository's README and <code>docs/EVAL_PLAN.md</code>). The collector and every page run locally.</dd>
       <dt>1 Oct 2026</dt><dd>Collection starts at 13:49 UTC. September 2026 was read as already published, so its figures are not first-published ones; first-published figures start with the file of 2 October.</dd>
     </dl>
   </aside>

@@ -1,0 +1,17 @@
+== test: 2026-01-01..2026-08-31, store ('202512', '202609')
+155 days scored, 1 gap days set aside, 0 unlogged rows
+  20/155 days, 42s
+  40/155 days, 85s
+  60/155 days, 126s
+  80/155 days, 167s
+  100/155 days, 214s
+  120/155 days, 254s
+  140/155 days, 295s
+651425 model rows
+  fold 1: 517333 train rows, 112535 held out
+  fold 2: 488337 train rows, 122401 held out
+  fold 3: 458421 train rows, 160960 held out
+  fold 4: 442774 train rows, 153938 held out
+  fold 5: 528722 train rows, 101591 held out
+decision: default = scale_up (model passes: False)
+estimates sha256 16f21bc4682584f7; written to /Users/tiagomendesdantas/Documents/AI/fund-flows-br/data/backtest/test
