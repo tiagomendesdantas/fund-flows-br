@@ -140,6 +140,39 @@ statistic. The register as of the issue day defines categories.
 **2026-10-01 — plan committed before any backtest run.** Inputs: the daily files 2024-01 to
 2026-09 and the delivery logs 2025-01 to 2026-10, hashed below.
 
+**2026-10-01 — development run done; results under "Development results".** No change to the plan.
+
+## Development results
+
+**2026-10-01 — the development year (2025), run once under the plan above** (`scripts/backtest.py
+--dev`; estimates sha256 `10b472539109652e`; outputs in `docs/backtest/dev/`). 242 days, lags 2–5,
+49,336 scored cells, 906,535 model rows, no gap days, every fund-day matched to a delivery.
+
+Primary metric, lag-2 `direct` net MAE: reported R$1.158 bn; scale_up 1.197; model 1.27 (power 1.7,
+best of three; skill against scale_up −0.063, interval [−0.175, +0.028]); trailing 1.48;
+trailing_beta 1.45. **The model fails the rule; the default is scale_up.** The plain reported sum
+has skill +0.033 against scale_up (interval [−0.027, +0.092]): not distinguishable, and it was not
+in the candidate set for the default; it stays on every page as the reference line.
+
+Reading: at lag 2 the missing funds hold 5.4% of net assets (median) and their net flows nearly
+cancel, so the file's own sum is within R$1.2 bn of the final figure on an average day (1.4 bps of
+net assets; the median daily net flow is R$7.9 bn). Scale-up adds error by inflating both legs
+(bias −0.28 bn against −0.15 for reported). The model's gain comes from each fund's own trailing
+rates (46–47% of importance per leg), then its size; category and calendar features add little.
+Unexpected arrivals (funds not in the expected set) add +0.53 bn of net flow at lag 2 and +0.29 at
+lag 5: a positive bias no method captures, logged as a candidate for a later version, not applied.
+
+Intervals for scale_up (`models/intervals.json`), in-sample coverage: 80% level: captc 79.4%, resg
+77.5%, net 74.6%; 95% level: 92.2%, 90.2%, 87.4%. The net 95% interval is already below its 90–99%
+target in-sample; the test will show the out-of-sample shortfall, and the live refit rule applies.
+
+Diagnostics. Cutoff at 00:00 / 00:52 / 03:00: reported 1.168 / 1.158 / 1.136 bn, scale_up 1.199 /
+1.197 / 1.168: immaterial. Truth at d+15 against the final file, `direct` net: mean +0.03 bn, MAE
+0.12, largest 2.6.
+
+For the test (Phase 4): default scale_up with these intervals; all five methods scored on the same
+cells; 13–16 January 2026 scored separately as gap days.
+
 ## Appendix: pinned inputs (SHA-256, first 16 hex digits)
 
 | File | Hash |
